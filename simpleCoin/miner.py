@@ -1,47 +1,15 @@
 import time
-import hashlib
 import json
 import requests
 import base64
 from flask import Flask, request
 from multiprocessing import Process, Pipe
 import ecdsa
+from block import Block
 
 from miner_config import MINER_ADDRESS, MINER_NODE_URL, PEER_NODES
 
 node = Flask(__name__)
-
-
-class Block:
-    def __init__(self, index, timestamp, data, previous_hash):
-        """Returns a new Block object. Each block is "chained" to its previous
-        by calling its unique hash.
-
-        Args:
-            index (int): Block number.
-            timestamp (int): Block creation timestamp.
-            data (str): Data to be sent.
-            previous_hash(str): String representing previous block unique hash.
-
-        Attrib:
-            index (int): Block number.
-            timestamp (int): Block creation timestamp.
-            data (str): Data to be sent.
-            previous_hash(str): String representing previous block unique hash.
-            hash(str): Current block unique hash.
-
-        """
-        self.index = index
-        self.timestamp = timestamp
-        self.data = data
-        self.previous_hash = previous_hash
-        self.hash = self.hash_block()
-
-    def hash_block(self):
-        """Creates the unique hash for the block. It uses sha256."""
-        sha = hashlib.sha256()
-        sha.update((str(self.index) + str(self.timestamp) + str(self.data) + str(self.previous_hash)).encode('utf-8'))
-        return sha.hexdigest()
 
 
 def create_genesis_block():
@@ -74,7 +42,7 @@ def proof_of_work(last_proof, blockchain):
     while not (incrementer % 7919 == 0 and incrementer % last_proof == 0):
         incrementer += 1
         # Check if any node found the solution every 60 seconds
-        if int((time.time()-start_time) % 60) == 0:
+        if int((time.time() - start_time) % 60) == 0:
             # If any other node got the proof, stop searching
             new_blockchain = consensus(blockchain)
             if new_blockchain:
@@ -108,8 +76,13 @@ def mine(a, blockchain, node_pending_transactions):
             # Once we find a valid proof of work, we know we can mine a block so
             # ...we reward the miner by adding a transaction
             # First we load all pending transactions sent to the node server
-            NODE_PENDING_TRANSACTIONS = requests.get(url = MINER_NODE_URL + '/txion', params = {'update':MINER_ADDRESS}).content
+            NODE_PENDING_TRANSACTIONS = requests.get(url=MINER_NODE_URL + '/txion',
+                                                     params={'update': MINER_ADDRESS}).content
             NODE_PENDING_TRANSACTIONS = json.loads(NODE_PENDING_TRANSACTIONS)
+
+            if len(NODE_PENDING_TRANSACTIONS) == 0:
+                continue
+
             # Then we add the mining reward
             NODE_PENDING_TRANSACTIONS.append({
                 "from": "network",
@@ -129,21 +102,21 @@ def mine(a, blockchain, node_pending_transactions):
             mined_block = Block(new_block_index, new_block_timestamp, new_block_data, last_block_hash)
             BLOCKCHAIN.append(mined_block)
             # Let the client know this node mined a block
-            print(json.dumps({
-              "index": new_block_index,
-              "timestamp": str(new_block_timestamp),
-              "data": new_block_data,
-              "hash": last_block_hash
-            }) + "\n")
+            print(json.dumps({"index": new_block_index,
+                              "timestamp": str(new_block_timestamp),
+                              "data": new_block_data,
+                              "hash": last_block_hash
+                              }) + "\n")
             a.send(BLOCKCHAIN)
-            requests.get(url = MINER_NODE_URL + '/blocks', params = {'update':MINER_ADDRESS})
+            requests.get(url=MINER_NODE_URL + '/blocks', params={'update': MINER_ADDRESS})
+
 
 def find_new_chains():
     # Get the blockchains of every other node
     other_chains = []
     for node_url in PEER_NODES:
         # Get their chains using a GET request
-        block = requests.get(url = node_url + "/blocks").content
+        block = requests.get(url=node_url + "/blocks").content
         # Convert the JSON object to a Python dictionary
         block = json.loads(block)
         # Verify other node block is correct
@@ -152,6 +125,23 @@ def find_new_chains():
             # Add it to our list
             other_chains.append(block)
     return other_chains
+
+
+def validate_blockchain(blockchain):
+    """Validate the submitted chain. If hashes are not correct, return false
+    block(str): json
+    """
+
+    for i in range(len(blockchain) - 1):
+        # if block is genesis block
+        if blockchain[i].index == 0:
+            # genesis block should have previous_hash equal to "0"
+            if blockchain[i].previous_hash != "0":
+                return False
+        else:
+            if blockchain[i].previous_hash != blockchain[i - 1].hash:
+                return False
+    return True
 
 
 def consensus(blockchain):
@@ -171,13 +161,6 @@ def consensus(blockchain):
         # Give up searching proof, update chain and start over again
         BLOCKCHAIN = longest_chain
         return BLOCKCHAIN
-
-
-def validate_blockchain(block):
-    """Validate the submitted chain. If hashes are not correct, return false
-    block(str): json
-    """
-    return True
 
 
 @node.route('/blocks', methods=['GET'])
