@@ -110,6 +110,11 @@ def mine(a, blockchain, node_pending_transactions):
             # First we load all pending transactions sent to the node server
             NODE_PENDING_TRANSACTIONS = requests.get(url = MINER_NODE_URL + '/txion', params = {'update':MINER_ADDRESS}).content
             NODE_PENDING_TRANSACTIONS = json.loads(NODE_PENDING_TRANSACTIONS)
+
+            # Prevents from giving the miners coins for nothing
+            if len(NODE_PENDING_TRANSACTIONS) == 0:
+                continue
+
             # Then we add the mining reward
             NODE_PENDING_TRANSACTIONS.append({
                 "from": "network",
