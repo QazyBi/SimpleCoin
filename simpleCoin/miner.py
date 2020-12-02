@@ -6,6 +6,7 @@ from flask import Flask, request
 from multiprocessing import Process, Pipe
 import ecdsa
 from block import Block
+import hashlib
 
 from miner_config import MINER_ADDRESS, MINER_NODE_URL, PEER_NODES
 
@@ -33,13 +34,23 @@ processed"""
 NODE_PENDING_TRANSACTIONS = []
 
 
+def valid_proof(last_proof, proof):
+    """
+        proof is valid if hash of last_proof + proof strings will have 5 leading zeroes
+    """
+    effort = f"{last_proof}{proof}".encode()
+    effort_hash = hashlib.sha256(effort).hexdigest()
+    return effort_hash[:6] == "000000"
+
+
 def proof_of_work(last_proof, blockchain):
     # Creates a variable that we will use to find our next proof of work
     incrementer = last_proof + 1
     # Keep incrementing the incrementer until it's equal to a number divisible by 9
     # and the proof of work of the previous block in the chain
     start_time = time.time()
-    while not (incrementer % 7919 == 0 and incrementer % last_proof == 0):
+
+    while not valid_proof(last_proof, incrementer):
         incrementer += 1
         # Check if any node found the solution every 60 seconds
         if int((time.time() - start_time) % 60) == 0:
@@ -145,22 +156,25 @@ def validate_blockchain(blockchain):
 
 
 def consensus(blockchain):
-    # Get the blocks from other nodes
-    other_chains = find_new_chains()
-    # If our chain isn't longest, then we store the longest chain
-    BLOCKCHAIN = blockchain
-    longest_chain = BLOCKCHAIN
-    for chain in other_chains:
-        if len(longest_chain) < len(chain):
-            longest_chain = chain
-    # If the longest chain wasn't ours, then we set our chain to the longest
-    if longest_chain == BLOCKCHAIN:
-        # Keep searching for proof
-        return False
+    if PEER_NODES != []:
+        # Get the blocks from other nodes
+        other_chains = find_new_chains()
+        # If our chain isn't longest, then we store the longest chain
+        BLOCKCHAIN = blockchain
+        longest_chain = BLOCKCHAIN
+        for chain in other_chains:
+            if len(longest_chain) < len(chain):
+                longest_chain = chain
+        # If the longest chain wasn't ours, then we set our chain to the longest
+        if longest_chain == BLOCKCHAIN:
+            # Keep searching for proof
+            return False
+        else:
+            # Give up searching proof, update chain and start over again
+            BLOCKCHAIN = longest_chain
+            return BLOCKCHAIN
     else:
-        # Give up searching proof, update chain and start over again
-        BLOCKCHAIN = longest_chain
-        return BLOCKCHAIN
+        return False
 
 
 @node.route('/blocks', methods=['GET'])
