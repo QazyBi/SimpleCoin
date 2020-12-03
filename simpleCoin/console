@@ -1,0 +1,31 @@
+# inspiration https://github.com/Carlos-Zen/blockchain-python/blob/master/console
+
+
+MODULES = ['miner']
+
+def upper_first(string):
+    return string[0].upper()+string[1:]
+
+def help():
+    print("Usage: python console [module] [action]\r")
+    print('[module]\n')
+    for m in MODULES:
+        usage(m)
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        help()
+        exit()
+    module = sys.argv[1]
+    if module == 'help':
+        help()
+        exit()
+    if module not in MODULES:
+        cprint('Error', 'First arg shoud in %s' % (str(MODULES,)))
+        exit()
+    mob = globals()[upper_first(module)]()
+    method = sys.argv[2]
+    # try:
+    getattr(mob, method)(sys.argv[3:])
+    # except Exception as e:
+    #     cprint('ERROR','/(ㄒoㄒ)/~~, Maybe command params get wrong, please check and try again.')

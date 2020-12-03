@@ -3,7 +3,7 @@ from ast import literal_eval
 
 
 class Block:
-    def __init__(self, index, timestamp, data, previous_hash):
+    def __init__(self, index=-1, timestamp=-1, data=-1, previous_hash=-1):
         """Returns a new Block object. Each block is "chained" to its previous
         by calling its unique hash.
 
@@ -37,8 +37,8 @@ class Block:
         return {
             "index": str(self.index),
             "timestamp": str(self.timestamp),
-            "pow": str(self.proof_of_work),
-            "effort": str(self.effort),
+            # "pow": str(self.proof_of_work),
+            # "effort": str(self.effort),
             "data": str(self.data),
             "previous": str(self.previous_hash),
             "hash": str(self.hash)
@@ -47,8 +47,8 @@ class Block:
     def importjson(self, json):
         self.index = int(json['index'])
         self.timestamp = float(json['timestamp'])
-        self.proof_of_work = str(json['pow'])
-        self.effort = str(json['effort'])
+        # self.proof_of_work = str(json['pow'])
+        # self.effort = str(json['effort'])
         self.data = literal_eval(json['data'])
         self.previous_hash = str(json['previous'])
         self.hash = self.hash_block()
