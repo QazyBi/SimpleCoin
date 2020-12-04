@@ -51,7 +51,6 @@ NEW_PEERS = []
 @node.route('/new_peers', methods=['GET'])
 def get_new_peers():
     global NEW_PEERS
-
     new_peers_json = json.dumps(NEW_PEERS)
     NEW_PEERS = []
     return new_peers_json
