@@ -27,6 +27,14 @@ class Block:
         self.previous_hash = previous_hash
         self.hash = self.hash_block()
 
+    def __str__(self):
+        return f"Index:{self.index} Timestamp:{self.timestamp}\
+                Data:{self.data} Previous_hash:{self.previous_hash} Hash:{self.hash}"
+
+    def __repr__(self):
+        return f"Index:{self.index} Timestamp:{self.timestamp}\
+                Data:{self.data} Previous_hash:{self.previous_hash} Hash:{self.hash}"
+
     def hash_block(self):
         """Creates the unique hash for the block. It uses sha256."""
         sha = hashlib.sha256()
