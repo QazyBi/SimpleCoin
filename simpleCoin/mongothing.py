@@ -22,8 +22,9 @@ def find_transaction(from_pk=None, to_pk=None, amount=None):
         dic['amount'] = amount
     cursor = db.transactions.find(dic)
     result = []
-    for transaction in cursor:
-        result.append(transaction)
+    for tr in cursor:
+        tr_obj = Transaction(tr['from'], tr['to'], tr['amount'], tr['timestamp'])
+        result.append(tr_obj)
     return result
 
 
