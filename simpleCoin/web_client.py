@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from multiprocessing import Process, Pipe
 import json
 import requests
@@ -55,13 +55,7 @@ def get_blocks():
 
     chain_to_send = BLOCKCHAIN
     # Converts our blocks into dictionaries so we can send them as json objects later
-    chain_to_send_json = []
-    for block in chain_to_send:
-        chain_to_send_json.append(block.exportjson())
-
-    # Send our chain to whomever requested it
-    chain_to_send = json.dumps(chain_to_send_json)
-    return chain_to_send
+    return jsonify(chain_to_send)
 
 
 @node.route('/txion', methods=['GET', 'POST'])
@@ -93,7 +87,6 @@ def transaction():
                             requests.post(peer[0] + ":" + peer[1] + "/txion", json=new_txion, headers=headers)
                         except Exception:
                             print(Exception)
-            return "Transaction submission successful\n"
             # Then we let the client know it worked out
             return "Transaction submission successful\n"
         else:
