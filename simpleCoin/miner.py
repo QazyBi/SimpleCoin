@@ -14,11 +14,8 @@ MINER_ADDRESS = "q3nf394hjg-random-miner-address-34nf3i4nflkn3oi"
 def create_genesis_block():
     """To create each block, it needs the hash of the previous one. First
     block has no previous, so it must be created manually (with index zero
-     and arbitrary previous hash)"""
-    return Block(0, time.time(), {
-        "proof-of-work": 9,
-        "transactions": None},
-        "0")
+    and arbitrary previous hash)"""
+    return Block(0, time.time(), 9, None, "0")
 
 
 def node_url(ip, port):
@@ -47,7 +44,8 @@ class Miner:
             if len(self.peers) == 0:
                 print("[INITIALIZING GENESIS BLOCK] Do not have peers")
             else:
-                print("[INITIALIZING GENESIS BLOCK] Could not find longer chain from peers")
+                print(
+                    "[INITIALIZING GENESIS BLOCK] Could not find longer chain from peers")
             self.blockchain = [create_genesis_block()]
 
         """ Stores the transactions that this node has in a list.
@@ -152,11 +150,12 @@ class Miner:
 
     def mine(self, a):
         a.send(self.blockchain)
-        requests.get(url=self.url + '/blocks', params={'update': MINER_ADDRESS})
+        requests.get(url=self.url + '/blocks',
+                     params={'update': MINER_ADDRESS})
         while True:
             print("[MINER] Mining New Block")
             last_block = self.blockchain[-1]
-            last_proof = last_block.data['proof-of-work']
+            last_proof = last_block.proof
 
             proof = self.proof_of_work(last_proof)
             if not proof[0]:
@@ -165,7 +164,8 @@ class Miner:
                 self.blockchain = proof[1]
                 a.send(self.blockchain)
                 pprint(self.blockchain)
-                requests.get(url=self.url + '/blocks', params={'update': MINER_ADDRESS})
+                requests.get(url=self.url + '/blocks',
+                             params={'update': MINER_ADDRESS})
                 continue
             else:
                 print("[FOUND PROOF]")
@@ -176,7 +176,8 @@ class Miner:
                 self.pending_transactions = requests.get(url=self.url + '/txion',
                                                          params={'update': MINER_ADDRESS}).content
                 print("Transactions:", self.pending_transactions)
-                self.pending_transactions = json.loads(self.pending_transactions)
+                self.pending_transactions = json.loads(
+                    self.pending_transactions)
 
                 if len(self.pending_transactions) == 0:
                     continue
@@ -187,22 +188,23 @@ class Miner:
                     "to": MINER_ADDRESS,
                     "amount": 1})
                 # Now we can gather the data needed to create the new block
-                new_block_data = {
-                    "proof-of-work": proof[0],
-                    "transactions": list(self.pending_transactions)
-                }
+                
+                proofofw = proof[0]
+                transactions = list(self.pending_transactions)
                 new_block_index = last_block.index + 1
                 new_block_timestamp = time.time()
                 last_block_hash = last_block.hash
                 # Empty transaction list
                 self.pending_transactions = []
                 # Now create the new block
-                mined_block = Block(new_block_index, new_block_timestamp, new_block_data, last_block_hash)
+                mined_block = Block(
+                    new_block_index, new_block_timestamp, proofofw, transactions, last_block_hash)
                 self.blockchain.append(mined_block)
                 # Let the client know this node mined a block
                 print(json.dumps({"index": new_block_index,
                                   "timestamp": str(new_block_timestamp),
-                                  "data": new_block_data,
+                                  "proof-of-work": proofofw,
+                                  "transactions": transactions,
                                   "hash": last_block_hash
                                   }) + "\n")
                 a.send(self.blockchain)
