@@ -1,24 +1,20 @@
-from common.identification import generate_ECDSA_keys
-from pprint import pprint
-import time
-import hashlib
-import requests
-import json
-
 from block import Block
-
-
-MINER_ADDRESS = "q3nf394hjg-random-miner-address-34nf3i4nflkn3oi"
+import requests
+import hashlib
+# import pprint
+import time
+import json
 
 
 def create_genesis_block():
     """To create each block, it needs the hash of the previous one. First
     block has no previous, so it must be created manually (with index zero
      and arbitrary previous hash)"""
-    return Block(0, time.time(), {
-        "proof-of-work": 9,
-        "transactions": None},
-        "0")
+    return Block(index=0,
+                 timestamp=time.time(),
+                 data={"transactions": []},
+                 proof=9,
+                 previous_hash="0")
 
 
 def node_url(ip, port):
@@ -26,56 +22,55 @@ def node_url(ip, port):
 
 
 class Miner:
-    def __init__(self, ip_address, port, peers):
-        print(f"[INITIALIZING] Miner initialized on {ip_address}:{port}")
-        print(f"[KNOWN PEERS] {peers}\n")
-
-        self.url = f"http://{ip_address}:{port}"
-        self.ip = ip_address
+    def __init__(self, ip, port, work, key):
+        self.ip = ip
         self.port = port
+        self.address = [self.ip, self.port]
+        self.work = work
+        self.key = key
 
-        self.peers = peers
-        self.public_key, self.private_key = generate_ECDSA_keys()
+    def update_peers(self, current_peers, other_miner_peers):
+        new_peers = [peer for peer in other_miner_peers if peer not in current_peers and peer != self.address]
+        return current_peers + new_peers
 
-        self.blockchain = []
-        if consensus := self.consensus():
-            print(f"[FOUND CHAIN] Found longer chain from peers")
-            self.blockchain = consensus
-            print("[UPDATED BLOCKCHAIN]")
-            pprint(self.blockchain)
-        else:
-            if len(self.peers) == 0:
-                print("[INITIALIZING GENESIS BLOCK] Do not have peers")
-            else:
-                print("[INITIALIZING GENESIS BLOCK] Could not find longer chain from peers")
-            self.blockchain = [create_genesis_block()]
+    def set_up(self, blockchain, transactions, peers):
+        for peer in peers:
+            payload = {
+                "ip": self.ip,
+                "port": self.port,
+            }
+            url = f'http://{peer[0]}:{peer[1]}/join'
+            response = requests.get(url, params=payload).content
+            if response is not None:
+                data = json.loads(response)
+                print(f"[MINER] JOINING TO PEER'S({peer[0]}:{peer[1]}) NETWORK ")
+                # print(f"[MINER] Blockchain: {data['blockchain']}")
+                # print(f"[MINER] Transactions: {data['transactions']}")
+                # print(f"[MINER] Peers: {self.update_peers(peers, data['peers'])}")
+                return data['blockchain'], data['transactions'], self.update_peers(peers, data['peers'])
+        return False
 
-        """ Stores the transactions that this node has in a list.
-        If the node you sent the transaction adds a block
-        it will get accepted, but there is a chance it gets
-        discarded and your transaction goes back as if it was never
-        processed"""
-        self.pending_transactions = []
-
+    # TODO: add checking validity of each block
     def validate_blockchain(self, blockchain):
         """Validate the submitted chain. If hashes are not correct, return false
         block(str): json
         """
-        for i in range(len(blockchain) - 1):
+        for i in range(len(blockchain)):
             # if block is genesis block
             if blockchain[i].index == 0:
                 # genesis block should have previous_hash equal to "0"
                 if blockchain[i].previous_hash != "0":
                     return False
-            else:
-                if blockchain[i].previous_hash != blockchain[i - 1].hash:
-                    return False
+            elif blockchain[i].previous_hash != blockchain[i - 1].hash:
+                return False
         return True
 
-    def find_new_chains(self):
+    def find_new_chains(self, peers):
+        # print("[FINDING CHAINS] looking for other blockchains")
+
         # Get the blockchains of every other node
         other_chains = []
-        for peer in self.peers:
+        for peer in peers:
             # Get their chains using a GET request
             peer_ip = peer[0]
             peer_port = peer[1]
@@ -102,110 +97,102 @@ class Miner:
                 other_chains.append(found_blockchain)
         return other_chains
 
-    def consensus(self):
-        if self.peers != []:
-            # Get the blocks from other nodes
-            other_chains = self.find_new_chains()
-            # If our chain isn't longest, then we store the longest chain
-            longest_chain = self.blockchain
-            for chain in other_chains:
-                if len(longest_chain) < len(chain):
-                    longest_chain = chain
-            # If the longest chain wasn't ours, then we set our chain to the longest
-            if longest_chain == self.blockchain:
-                # Keep searching for proof
-                return False
-            else:
-                # Give up searching proof, update chain and start over again
-                return longest_chain
-        else:
+    # NOT TESTED, but seems fine
+    def consensus(self, blockchain, peers):
+        # Get the blocks from other nodes
+        other_chains = self.find_new_chains(peers)
+        # If our chain isn't longest, then we store the longest chain
+        longest_chain = blockchain
+        for chain in other_chains:
+            if len(longest_chain) < len(chain):
+                longest_chain = chain
+        # If the longest chain wasn't ours, then we set our chain to the longest
+        if longest_chain == blockchain:
+            # Keep searching for proof
+            print("[NO CONSENSUS] NOT FOUND LONGER CHAIN")
             return False
+        else:
+            print("[CONSENSUS] FOUND NEW CHAIN")
+            # Give up searching proof, update chain and start over again
+            return longest_chain
 
     def valid_proof(self, last_proof, proof):
         """
             proof is valid if hash of last_proof + proof strings will have 5 leading zeroes
         """
-        work = 6
         effort = f"{last_proof}{proof}".encode()
         effort_hash = hashlib.sha256(effort).hexdigest()
-        return effort_hash[:work] == "0" * work
+        return effort_hash[:self.work] == "0" * self.work
 
-    def proof_of_work(self, last_proof):
+    # NOT TESTED IN CASE CONSENSUS = True; TODO: consensus search time depends from work
+    def proof_of_work(self, blockchain, peers):
+        last_block = blockchain[-1]
+        last_proof = last_block['proof']
+
         # Creates a variable that we will use to find our next proof of work
         incrementer = last_proof + 1
+
         # Keep incrementing the incrementer until it's equal to a number divisible by 9
         # and the proof of work of the previous block in the chain
-        start_time = int(time.time())
-
         while not self.valid_proof(last_proof, incrementer):
+            # print("[GUESSING PROOF OF WORK]")
             incrementer += 1
-            # Check if any node found the solution every 60 seconds
-            if (int(time.time() - start_time)) % 60 == 0:
+
+            # Check if any node found the solution every 10 million iteration
+            if incrementer % 10000000 == 0:
+                print(f"[MINER] INCREMENT:{incrementer}")
                 # If any other node got the proof, stop searching
-                new_blockchain = self.consensus()
-                if new_blockchain:
-                    # (False: another node got proof first, new blockchain)
+                if new_blockchain := self.consensus(blockchain, peers):
                     return False, new_blockchain
-            time.sleep(1)
         # Once that number is found, we can return it as a proof of our work
-        return incrementer, self.blockchain
+        return True, incrementer
 
-    def mine(self, a):
-        a.send(self.blockchain)
-        requests.get(url=self.url + '/blocks', params={'update': MINER_ADDRESS})
+    def reward_transaction(self):
+        return {"from": "network",
+                "to": self.key,
+                "amount": 1}
+
+    # NOT TESTED IN CASE CONSENSUS = True
+    def run(self, blockchain, transactions, peers):
+        if response := self.set_up(blockchain, transactions, peers):
+            blockchain[:] = response[0]
+            transactions[:] = response[1]
+            peers[:] = response[2]
+        else:
+            print("[MINER] CREATE GENESIS BLOCK")
+            blockchain.append(create_genesis_block().exportjson())
+
+        print("[MINER] START MINING")
         while True:
-            print("[MINER] Mining New Block")
-            last_block = self.blockchain[-1]
-            last_proof = last_block.data['proof-of-work']
-
-            proof = self.proof_of_work(last_proof)
-            if not proof[0]:
-                print("[SOMEONE FOUND PROOF]")
-                # Update blockchain and save it to file
-                self.blockchain = proof[1]
-                a.send(self.blockchain)
-                pprint(self.blockchain)
-                requests.get(url=self.url + '/blocks', params={'update': MINER_ADDRESS})
-                continue
-            else:
-                print("[FOUND PROOF]")
+            # function returns boolean variable and either proof or new blockchain
+            response = self.proof_of_work(blockchain, peers)
+            last_block = blockchain[-1]
+            if not response[0]:
+                blockchain[:] = response[1]
+                print("[MINER] SOMEONE FOUND PROOF")
+            elif self.valid_proof(last_block['proof'], response[1]):
+                proof = response[1]
+                print("[MINER] FOUND PROOF")
 
                 # Once we find a valid proof of work, we know we can mine a block so
                 # ...we reward the miner by adding a transaction
-                # First we load all pending transactions sent to the node server
-                self.pending_transactions = requests.get(url=self.url + '/txion',
-                                                         params={'update': MINER_ADDRESS}).content
-                print("Transactions:", self.pending_transactions)
-                self.pending_transactions = json.loads(self.pending_transactions)
-
-                if len(self.pending_transactions) == 0:
+                if len(transactions) == 0:
                     continue
-
+                print("[MINER] MAKING BLOCK")
                 # Then we add the mining reward
-                self.pending_transactions.append({
-                    "from": "network",
-                    "to": MINER_ADDRESS,
-                    "amount": 1})
-                # Now we can gather the data needed to create the new block
-                new_block_data = {
-                    "proof-of-work": proof[0],
-                    "transactions": list(self.pending_transactions)
-                }
-                new_block_index = last_block.index + 1
-                new_block_timestamp = time.time()
-                last_block_hash = last_block.hash
-                # Empty transaction list
-                self.pending_transactions = []
+                transactions.append(self.reward_transaction())
                 # Now create the new block
-                mined_block = Block(new_block_index, new_block_timestamp, new_block_data, last_block_hash)
-                self.blockchain.append(mined_block)
-                # Let the client know this node mined a block
-                print(json.dumps({"index": new_block_index,
-                                  "timestamp": str(new_block_timestamp),
-                                  "data": new_block_data,
-                                  "hash": last_block_hash
-                                  }) + "\n")
-                a.send(self.blockchain)
-                payload = {'update': MINER_ADDRESS, 'peers': self.peers}
-                requests.get(url=self.url + '/blocks', params=payload)
-                pprint(self.blockchain)
+                mined_block = Block(index=last_block['index'] + 1,
+                                    timestamp=time.time(),
+                                    data={"transactions": list(transactions)},
+                                    proof=proof,
+                                    previous_hash=last_block['hash'])
+
+                # Empty transaction list
+                transactions[:] = []
+
+                block_json = mined_block.exportjson()
+                block_json['ttl'] = 2
+                requests.post(url=node_url(self.ip, self.port) + "/block",
+                              headers={"Content-Type": "application/json"},
+                              data=json.dumps(block_json))

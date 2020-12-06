@@ -65,12 +65,14 @@ def send_transaction(addr_from, private_key, addr_to, amount):
 
     if len(private_key) == 64:
         signature, message = sign_ECDSA_msg(private_key)
-        url = 'http://localhost:5000/txion'
+        url = 'http://localhost:5000/transaction'
         payload = {"from": addr_from,
                    "to": addr_to,
                    "amount": amount,
                    "signature": signature.decode(),
-                   "message": message}
+                   "message": message,
+                   "ttl": 2}  # time to live - how many times this message will be readressed
+
         headers = {"Content-Type": "application/json"}
 
         res = requests.post(url, json=payload, headers=headers)

@@ -54,5 +54,5 @@ def validate_signature(public_key, signature, message):
     # Try changing into an if/else statement as except is too broad.
     try:
         return vk.verify(signature, message.encode())
-    except:
+    except Exception:
         return False
