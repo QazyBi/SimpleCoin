@@ -9,10 +9,10 @@ import json
 def create_genesis_block():
     """To create each block, it needs the hash of the previous one. First
     block has no previous, so it must be created manually (with index zero
-     and arbitrary previous hash)"""
+    and arbitrary previous hash)"""
     return Block(index=0,
                  timestamp=time.time(),
-                 data={"transactions": []},
+                 transactions=[],
                  proof=9,
                  previous_hash="0")
 
@@ -50,7 +50,6 @@ class Miner:
                 return data['blockchain'], data['transactions'], self.update_peers(peers, data['peers'])
         return False
 
-    # TODO: add checking validity of each block
     def validate_blockchain(self, blockchain):
         """Validate the submitted chain. If hashes are not correct, return false
         block(str): json

@@ -20,6 +20,7 @@ node_pending_transactions list to avoid it get processed more than 1 time.
 
 import requests
 from common.identification import generate_ECDSA_keys, sign_ECDSA_msg
+from simplejson import dumps, loads
 
 
 def wallet():
@@ -86,7 +87,9 @@ def check_transactions():
     wallets balance. If the blockchain is to long, it may take some time to load.
     """
     res = requests.get('http://localhost:5000/blocks')
-    print(res.text)
+    with open('transactions.txt', 'w') as outfile:
+        outfile.write(dumps(loads(res.text), indent=4, sort_keys=True))
+        outfile.close()
 
 
 if __name__ == '__main__':
