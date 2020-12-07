@@ -45,7 +45,7 @@ def test_validate_blockchain_valid_chain():
 
     b1 = Block(index=1,
                timestamp=time.time(),
-               data={"transactions": []},
+               transactions=[],
                proof=24013649,
                previous_hash=b0.hash)
     blockchain.append(b1)
@@ -61,7 +61,7 @@ def test_validate_blockchain_invalid_chain():
 
     b1 = Block(index=1,
                timestamp=time.time(),
-               data={"transactions": []},
+               transactions=[],
                proof=24013649,
                previous_hash="1719d0824d66e0286eff77ff3e883a3f6b9eb746c96f16a0b331464794e29791")
     blockchain.append(b1)

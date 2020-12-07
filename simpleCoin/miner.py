@@ -183,7 +183,7 @@ class Miner:
                 # Now create the new block
                 mined_block = Block(index=last_block['index'] + 1,
                                     timestamp=time.time(),
-                                    data={"transactions": list(transactions)},
+                                    transactions=list(transactions),
                                     proof=proof,
                                     previous_hash=last_block['hash'])
 
