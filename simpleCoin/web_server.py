@@ -8,6 +8,9 @@ import json
 from common.identification import validate_signature
 from miner import Miner
 
+from transactions_db import TransactionsDB
+from public_keys_db import PublicKeysDB
+
 
 node = Flask(__name__)
 
@@ -139,7 +142,8 @@ def get_post_transaction():
 
             transactions.append(transaction)
             print_transaction(transaction)
-            broadcast_to_peers('transaction', new_transaction, peers, new_transaction['ttl'])
+            broadcast_to_peers('transaction', new_transaction,
+                               peers, new_transaction['ttl'])
 
             # Then we let the client know it worked out
             return "Transaction submission successful\n"
@@ -154,10 +158,8 @@ def store_new_pk():
     json = request.get_json()
     json['ttl'] -= 1
     public_key = json['public_key']
-    # okay i m lost here.
-    # technically, public keys and transactions should be added to the DBs from here,
-    # not from `miner.py` but i'm not sure i understand how to do it correctly
-
+    public_keys_db.add_pk(public_key)
+    broadcast_to_peers('new_public_key', json, peers, json['ttl'])
 
 
 def help():
@@ -198,10 +200,13 @@ if __name__ == '__main__':
         peers: List[Tuple[str, int]] = manager.list([])
 
         peers.extend(node_peers)
-
-        miner = Miner(ip, port, work, miner_key, mongo_port)
-        miner_process = Process(target=miner.run, args=(blockchain, transactions, peers))
+        transactions_db = TransactionsDB(IP=ip, PORT=mongo_port)
+        public_keys_db = PublicKeysDB(IP=ip, PORT=mongo_port)
+        miner = Miner(ip, port, work, miner_key)
+        miner_process = Process(target=miner.run, args=(
+            blockchain, transactions, peers))
         miner_process.start()
 
-        web_server = Process(target=node.run(host=ip, port=port), args=(blockchain, transactions))
+        web_server = Process(target=node.run(host=ip, port=port), args=(
+            blockchain, transactions, transactions_db, public_keys_db))
         web_server.start()

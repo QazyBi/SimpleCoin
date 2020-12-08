@@ -5,8 +5,6 @@ import hashlib
 import time
 import json
 
-from transactions_db import TransactionsDB
-from public_keys_db import PublicKeysDB
 
 
 
@@ -26,15 +24,13 @@ def node_url(ip, port):
 
 
 class Miner:
-    def __init__(self, ip, port, work, key, mongo_port):
+    def __init__(self, ip, port, work, key):
         self.ip = ip
         self.port = port
         self.address = [self.ip, self.port]
         self.work = work
         self.key = key
-        
-        self.transactions_db = TransactionsDB(IP=self.ip, PORT=mongo_port)
-        self.public_keys_db = PublicKeysDB(IP=self.ip, PORT=mongo_port)
+
 
     def update_peers(self, current_peers, other_miner_peers):
         new_peers = [peer for peer in other_miner_peers if peer not in current_peers and peer != self.address]
