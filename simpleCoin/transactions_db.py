@@ -1,53 +1,60 @@
 from pymongo import MongoClient
 
-client = MongoClient('localhost', 27017)
-db = client.blockchain
+client, db, collection = None, None, None
 
 
-def add_transaction(transaction):
-    """
-    transaction (Transaction): a transaction to add to the collection
-    """
-    db.transactions.insert_one(transaction.dic_form)
+class TransactionsDB:
+    def __init__(self, IP, PORT):
+        global client, collection, db
+        client = MongoClient(IP, PORT)
+        db = client.blockchain
+        collection = db.transactions
 
 
-def read_all_transactions(repr=None):
-    """
-    repr (json or None): how to represent the result. if None the result will be a list of Transaction class objects,
-                                                      if 'json' the result will be a list of dictionaries
-    """
-    return find_transaction(repr=repr)
+    def add_transaction(self, transaction):
+        """
+        transaction (Transaction): a transaction to add to the collection
+        """
+        collection.insert_one(transaction.dic_form)
 
 
-def find_transaction(from_pk=None, to_pk=None, amount=None, repr=None):
-    """
-    from_pk (str): public key of a sender
-    to_pk (str): public key of a receiver
-    amount (str): amount to send
-    repr (json or None): how to represent the result. if None the result will be a list of Transaction class objects,
-                                                      if 'json' the result will be a list of dictionaries
-    """
-    dic = {}
-    if from_pk:
-        dic['from'] = from_pk
-    if to_pk:
-        dic['to'] = to_pk
-    if amount:
-        dic['amount'] = amount
-    cursor = db.transactions.find(dic)
-    result = []
-    for tr in cursor:
-        tr_obj = Transaction(tr['from'], tr['to'],
-                             tr['amount'], tr['timestamp'])
-        result.append(tr_obj.dic_form if repr == 'json' else tr_obj)
-    return result
+    def read_all_transactions(self, repr=None):
+        """
+        repr (json or None): how to represent the result. if None the result will be a list of Transaction class objects,
+                                                        if 'json' the result will be a list of dictionaries
+        """
+        return self.find_transaction(repr=repr)
 
 
-def drop_all():
-    """
-    can be called at the beginning to clear the transactions collection if needed
-    """
-    db.transactions.drop()
+    def find_transaction(self, from_pk=None, to_pk=None, amount=None, repr=None):
+        """
+        from_pk (str): public key of a sender
+        to_pk (str): public key of a receiver
+        amount (str): amount to send
+        repr (json or None): how to represent the result. if None the result will be a list of Transaction class objects,
+                                                        if 'json' the result will be a list of dictionaries
+        """
+        dic = {}
+        if from_pk:
+            dic['from'] = from_pk
+        if to_pk:
+            dic['to'] = to_pk
+        if amount:
+            dic['amount'] = amount
+        cursor = collection.find(dic)
+        result = []
+        for tr in cursor:
+            tr_obj = Transaction(tr['from'], tr['to'],
+                                tr['amount'], tr['timestamp'])
+            result.append(tr_obj.dic_form if repr == 'json' else tr_obj)
+        return result
+
+
+    def drop_all(self):
+        """
+        can be called at the beginning to clear the transactions collection if needed
+        """
+        collection.drop()
 
 
 class Transaction:

@@ -35,7 +35,9 @@ def wallet():
         print("""=========================================\n
 IMPORTANT: save this credentials or you won't be able to recover your wallet\n
 =========================================\n""")
-        generate_ECDSA_keys()
+        _, public_key = generate_ECDSA_keys()
+        store_public_key(public_key)
+
     elif response == "2":
         addr_from = input("From: introduce your wallet address (public key)\n")
         private_key = input("Introduce your private key\n")
@@ -49,6 +51,15 @@ IMPORTANT: save this credentials or you won't be able to recover your wallet\n
             send_transaction(addr_from, private_key, addr_to, amount)
     else:  # Will always occur when response == 3.
         check_transactions()
+
+
+def store_public_key(pk):
+    url = 'http://localhost:5000/new_public_key'
+    payload = {"public_key": pk,
+                "ttl": 2}  # time to live - how many times this message will be readressed
+
+    headers = {"Content-Type": "application/json"}
+    requests.post(url, json=payload, headers=headers)
 
 
 def send_transaction(addr_from, private_key, addr_to, amount):

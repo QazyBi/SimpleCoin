@@ -149,6 +149,17 @@ def get_post_transaction():
         return json.dumps(getvalue_transactions())
 
 
+@node.route('/new_public_key', methods=['POST'])
+def store_new_pk():
+    json = request.get_json()
+    json['ttl'] -= 1
+    public_key = json['public_key']
+    # okay i m lost here.
+    # technically, public keys and transactions should be added to the DBs from here,
+    # not from `miner.py` but i'm not sure i understand how to do it correctly
+
+
+
 def help():
     print("miner_ip:miner_port [peer_ip:peer_port]")
 
@@ -156,20 +167,22 @@ def help():
 def cli():
     """Function to parse user input from command line
 
-    Example use cases:
-        python web_server.py 127.0.0.1:5000
-        python web_server.py 127.0.0.1:5000 127.0.0.1:5001 127.0.0.1:5002
+    Example use case (steps):
+        1. python web_server.py 127.0.0.1:5001 27017
+        2. python web_server.py 127.0.0.1:5002 27018 127.0.0.1:5001
+        3. python web_server.py 127.0.0.1:5000 27019 127.0.0.1:5001 127.0.0.1:5002
     """
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 3:
         help()
         exit()
     miner_addr = sys.argv[1].split(":")
     ip = miner_addr[0]
     port = int(miner_addr[1])
-    node_peers = [peer_addr.split(":") for peer_addr in sys.argv[2:]]
+    mongo_port = int(sys.argv[2])
+    node_peers = [peer_addr.split(":") for peer_addr in sys.argv[3:]]
     node_peers = [(peer[0], int(peer[1])) for peer in node_peers]
     print(f"NODE PEERS: {node_peers}")
-    return ip, port, node_peers
+    return ip, port, mongo_port, node_peers
 
 
 if __name__ == '__main__':
@@ -178,7 +191,7 @@ if __name__ == '__main__':
     # change to auto generation
     miner_key = "q3nf394hjg-random-miner-address-34nf3i4nflkn3oi"
 
-    ip, port, node_peers = cli()
+    ip, port, mongo_port, node_peers = cli()
     with Manager() as manager:
         blockchain = manager.list([])
         transactions = manager.list([])
@@ -186,7 +199,7 @@ if __name__ == '__main__':
 
         peers.extend(node_peers)
 
-        miner = Miner(ip, port, work, miner_key)
+        miner = Miner(ip, port, work, miner_key, mongo_port)
         miner_process = Process(target=miner.run, args=(blockchain, transactions, peers))
         miner_process.start()
 
