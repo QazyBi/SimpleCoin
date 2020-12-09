@@ -3,7 +3,7 @@ import base64
 import ecdsa
 
 
-def generate_ECDSA_keys():
+def generate_ECDSA_keys(filename=None):
     """This function takes care of creating your private and public (your address) keys.
     It's very important you don't lose any of them or those wallets will be lost
     forever. If someone else get access to your private key, you risk losing your coins.
@@ -19,7 +19,8 @@ def generate_ECDSA_keys():
     # we are going to encode the public key to make it shorter
     public_key = base64.b64encode(bytes.fromhex(public_key))
 
-    filename = input("Write the name of your new address: ") + ".txt"
+    if filename == None:
+        filename = input("Write the name of your new address: ") + ".txt"
     with open(filename, "w") as f:
         f.write("Private key: {0}\nWallet address / Public key: {1}".format(private_key, public_key.decode()))
     print("Your new address and private key are now in the file {0}".format(filename))
