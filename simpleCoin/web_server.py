@@ -6,7 +6,7 @@ import sys
 import json
 from datetime import datetime
 
-from common.identification import validate_signature
+from common.identification import validate_signature, generate_ECDSA_keys
 from miner import Miner
 
 from blockchain_db import BlockchainDB
@@ -206,7 +206,7 @@ if __name__ == '__main__':
     # variable work determines number of leading zeroes needed to have hash(f"{last_proof}{proof}")
     work = 6  # better to put 6
     # change to auto generation
-    miner_key = "q3nf394hjg-random-miner-address-34nf3i4nflkn3oi"
+    miner_public_key, miner_private_key = generate_ECDSA_keys()
 
     ip, port, mongo_port, node_peers = cli()
     with Manager() as manager:
@@ -219,7 +219,7 @@ if __name__ == '__main__':
         blockchain_db = BlockchainDB(IP=ip, PORT=mongo_port)
         # connect a database for storing public keys of the users
         public_keys_db = PublicKeysDB(IP=ip, PORT=mongo_port)
-        miner = Miner(ip, port, work, miner_key)
+        miner = Miner(ip, port, work, miner_public_key)
         miner_process = Process(target=miner.run, args=(
             blockchain, transactions, peers))
         miner_process.start()
