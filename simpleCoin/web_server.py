@@ -4,11 +4,12 @@ from typing import List, Tuple
 import requests
 import sys
 import json
+from datetime import datetime
 
 from common.identification import validate_signature
 from miner import Miner
 
-from transactions_db import TransactionsDB
+from blockchain_db import BlockchainDB
 from public_keys_db import PublicKeysDB
 
 
@@ -49,7 +50,7 @@ def valid_block(block):
 
 def update_transactions(blockchain, transactions):
     for block in blockchain:
-        for transaction in block['data']['transactions']:
+        for transaction in block['transactions']:
             try:
                 transactions.remove(transaction)
             except Exception:
@@ -88,13 +89,15 @@ def join():
                    )
 
 
-# NOT TESTED
 @node.route('/block', methods=['POST'])
 def post_block():
     block = request.get_json()
+    print("EHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
     if valid_block(block):
         print("[MINER] APPENDED NEW BLOCK TO THE BLOCKCHAIN")
         blockchain.append(block)
+        print("[MINER] ADD NEW BLOCK TO THE DATABASE")
+        blockchain_db.add_block(block)
         block['ttl'] -= 1
         update_transactions(blockchain, transactions)
         broadcast_to_peers('block', block, peers, block['ttl'])
@@ -114,7 +117,7 @@ def get_peers():
 def get_blocks():
     """GET method returns current blockchain on the miner node
     """
-    return json.dumps(getvalue_blockchain())
+    return jsonify(blockchain_db.read_all_blocks(repr='json'))
 
 
 @node.route('/transaction', methods=['GET', 'POST'])
@@ -125,11 +128,8 @@ def get_post_transaction():
         # On each new POST request, we extract the transaction data
         new_transaction = request.get_json()
         new_transaction['ttl'] -= 1
-        # Then we add the transaction to our list
-        valid_signature = validate_signature(new_transaction['from'],
-                                             new_transaction['signature'],
-                                             new_transaction['message'])
-        if valid_signature:
+
+        if valid_transaction(new_transaction):
             # We create new dict object to store only needed info
             transaction = {
                 'from': new_transaction['from'],
@@ -137,7 +137,7 @@ def get_post_transaction():
                 'amount': new_transaction['amount'],
                 'signature': new_transaction['signature'],
                 'message': new_transaction['message'],
-                # 'timestamp': time.time(),
+                'timestamp': str(datetime.utcnow())
             }
 
             transactions.append(transaction)
@@ -148,7 +148,7 @@ def get_post_transaction():
             # Then we let the client know it worked out
             return "Transaction submission successful\n"
         else:
-            return "Transaction submission failed. Wrong signature\n"
+            return "Transaction submission failed. Check your signature or the receiver's public key\n"
     else:
         return json.dumps(getvalue_transactions())
 
@@ -160,6 +160,22 @@ def store_new_pk():
     public_key = json['public_key']
     public_keys_db.add_pk(public_key)
     broadcast_to_peers('new_public_key', json, peers, json['ttl'])
+    return
+
+
+def valid_transaction(new_transaction):
+    sender_exists = public_keys_db.find_pk(new_transaction['from'])
+    receiver_exists = public_keys_db.find_pk(new_transaction['to'])
+    if not sender_exists or not receiver_exists:
+        return False
+
+    valid_signature = validate_signature(new_transaction['from'],
+                                         new_transaction['signature'],
+                                         new_transaction['message'])
+
+    if not valid_signature:
+        return False
+    return True
 
 
 def help():
@@ -200,13 +216,15 @@ if __name__ == '__main__':
         peers: List[Tuple[str, int]] = manager.list([])
 
         peers.extend(node_peers)
-        transactions_db = TransactionsDB(IP=ip, PORT=mongo_port)
+        # connect a database for storing the blockchain
+        blockchain_db = BlockchainDB(IP=ip, PORT=mongo_port)
+        # connect a database for storing public keys of the users
         public_keys_db = PublicKeysDB(IP=ip, PORT=mongo_port)
         miner = Miner(ip, port, work, miner_key)
         miner_process = Process(target=miner.run, args=(
             blockchain, transactions, peers))
         miner_process.start()
 
-        web_server = Process(target=node.run(host=ip, port=port), args=(
-            blockchain, transactions, transactions_db, public_keys_db))
+        web_server = Process(target=node.run(host=ip, port=port, debug=True), args=(
+            blockchain, transactions, blockchain_db, public_keys_db))
         web_server.start()
