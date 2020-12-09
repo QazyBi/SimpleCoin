@@ -70,7 +70,7 @@ def getvalue_peers():
 
 
 def add_peer(request):
-    ip = request.args.get("ip")
+    ip = request.remote_addr
     port = request.args.get("port")
 
     if ip is not None and port is not None:
@@ -159,7 +159,7 @@ def store_new_pk():
     public_key = json['public_key']
     public_keys_db.add_pk(public_key)
     broadcast_to_peers('new_public_key', json, peers, json['ttl'])
-    return
+    return "Transaction submission successful\n"
 
 
 def valid_transaction(new_transaction):
@@ -178,7 +178,7 @@ def valid_transaction(new_transaction):
 
 
 def help():
-    print("miner_ip:miner_port [peer_ip:peer_port]")
+    print("miner_ip:miner_port miner_mongo_port [peer_ip:peer_port]")
 
 
 def cli():
@@ -218,7 +218,7 @@ if __name__ == '__main__':
         # connect a database for storing public keys of the users
         public_keys_db = PublicKeysDB(IP=ip, PORT=mongo_port)
         miner = Miner(ip, port, work, miner_public_key)
-        miner_process = Process(target=miner.run, args=(
+        miner_process = Process(target=miner.mine, args=(
             blockchain, transactions, peers))
         miner_process.start()
 

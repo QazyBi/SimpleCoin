@@ -153,7 +153,7 @@ class Miner:
                 "amount": 1}
 
     # NOT TESTED IN CASE CONSENSUS = True
-    def run(self, blockchain, transactions, peers):
+    def mine(self, blockchain, transactions, peers):
         if response := self.set_up(blockchain, transactions, peers):
             blockchain[:] = response[0]
             transactions[:] = response[1]
@@ -202,4 +202,4 @@ class Miner:
                 block_json['ttl'] = 2
                 requests.post(url=node_url(self.ip, self.port) + "/block",
                               headers={"Content-Type": "application/json"},
-                              data=json.dumps(block_json))
+                              data=block_json)
