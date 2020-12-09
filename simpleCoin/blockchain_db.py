@@ -1,8 +1,6 @@
 from pymongo import MongoClient
 from block import Block
 
-client, db, collection = None, None, None
-
 
 class BlockchainDB:
     def __init__(self, IP, PORT):
@@ -10,10 +8,9 @@ class BlockchainDB:
         IP (str): IP for mongodb, e.g. 127.0.0.1
         PORT (int): PORT for mongodb, e.g. 27017
         """
-        global client, collection, db
         client = MongoClient(IP, PORT)
         db = client.blockchain
-        collection = db.blockchain
+        self.collection = db.blockchain
         # drop the previously stored blockchain
         self.drop_all()
 
@@ -21,7 +18,7 @@ class BlockchainDB:
         """
         block (Block): a block to add to the collection
         """
-        return collection.insert_one(block)
+        return self.collection.insert_one(block)
 
     def read_all_blocks(self, repr=None):
         """
@@ -51,7 +48,7 @@ class BlockchainDB:
             dic['previous_hash'] = previous_hash
         if hash_block:
             dic['hash_block'] = hash_block
-        cursor = collection.find(dic, {'_id': 0})
+        cursor = self.collection.find(dic, {'_id': 0})
         result = []
         for b in cursor:
             block = Block()
@@ -63,4 +60,4 @@ class BlockchainDB:
         """
         can be called at the beginning to clear the blocks collection if needed
         """
-        collection.drop()
+        self.collection.drop()
