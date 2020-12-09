@@ -6,16 +6,22 @@ client, db, collection = None, None, None
 
 class BlockchainDB:
     def __init__(self, IP, PORT):
+        """
+        IP (str): IP for mongodb, e.g. 127.0.0.1
+        PORT (int): PORT for mongodb, e.g. 27017
+        """
         global client, collection, db
         client = MongoClient(IP, PORT)
         db = client.blockchain
         collection = db.blockchain
+        # drop the previously stored blockchain
+        self.drop_all()
 
     def add_block(self, block: Block):
         """
         block (Block): a block to add to the collection
         """
-        collection.insert_one(block.exportjson())
+        return collection.insert_one(block)
 
     def read_all_blocks(self, repr=None):
         """
@@ -45,12 +51,12 @@ class BlockchainDB:
             dic['previous_hash'] = previous_hash
         if hash_block:
             dic['hash_block'] = hash_block
-        cursor = collection.find(dic)
+        cursor = collection.find(dic, {'_id': 0})
         result = []
         for b in cursor:
             block = Block()
-            result.append(block.importjson(b)
-                          if repr == 'json' else block)
+            block.importjson(b)
+            result.append(block.exportjson() if repr == 'json' else block)
         return result
 
     def drop_all(self):
