@@ -17,7 +17,8 @@ class PublicKeysDB:
         """
         pk (str): a public key to add to the collection
         """
-        self.collection.insert_one({'pk': pk})
+        if not self.find_pk(pk):
+            self.collection.insert_one({'pk': pk})
 
     def find_pk(self, pk):
         """
