@@ -35,11 +35,11 @@ def wallet():
         print("""=========================================\n
 IMPORTANT: save this credentials or you won't be able to recover your wallet\n
 =========================================\n""")
-        _, public_key = generate_ECDSA_keys()
+        public_key, _ = generate_ECDSA_keys()
         store_public_key(public_key)
 
     elif response == "2":
-        addr_from = input("From: introduce your wallet address (public key)\n")
+        addr_from = input("From: introduce your wallet address\n")
         private_key = input("Introduce your private key\n")
         addr_to = input("To: introduce destination wallet address\n")
         amount = input("Amount: number stating how much do you want to send\n")
