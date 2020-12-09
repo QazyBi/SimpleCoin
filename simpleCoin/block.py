@@ -1,4 +1,4 @@
-import hashlib
+from hashlib import sha256
 
 
 class Block:
@@ -29,17 +29,13 @@ class Block:
         self.previous_hash = previous_hash
         self.hash = self.hash_block()
 
-    def __str__(self):
-        return f"Index:{self.index} Timestamp:{self.timestamp} Pow:{self.proof}\
-                Transactions:{self.transactions} Previous_hash:{self.previous_hash} Hash:{self.hash}"
-
     def __repr__(self):
-        return f"Index:{self.index} Timestamp:{self.timestamp} Pow:{self.proof}\
-                Transactions:{self.transactions} Previous_hash:{self.previous_hash} Hash:{self.hash}"
+        return f"Index:{self.index} Timestamp:{self.timestamp} \nPow:{self.proof}\
+                \nTransactions:{self.transactions} \nPrevious_hash:{self.previous_hash} \nHash:{self.hash}\n"
 
     def hash_block(self):
         """Creates the unique hash for the block. It uses sha256."""
-        sha = hashlib.sha256()
+        sha = sha256()
         string = (str(self.index) + str(self.timestamp)
                   + str(self.transactions) + str(self.proof)
                   + str(self.previous_hash))
@@ -58,8 +54,8 @@ class Block:
 
     def importjson(self, json):
         self.index = int(json['index'])
-        self.timestamp = float(json['timestamp'])
+        self.timestamp = json['timestamp']
         self.proof = int(json['proof'])
         self.transactions = json['transactions']
         self.previous_hash = str(json['previous'])
-        self.hash = self.hash_block()
+        self.hash = str(json['hash'])
