@@ -29,7 +29,8 @@ class Miner:
         self.key = key
 
     def update_peers(self, current_peers, other_miner_peers):
-        new_peers = [peer for peer in other_miner_peers if peer not in current_peers and peer != self.address]
+        new_peers = [
+            peer for peer in other_miner_peers if peer not in current_peers and peer != self.address]
         return current_peers + new_peers
 
     def set_up(self, blockchain, transactions, peers):
@@ -42,7 +43,8 @@ class Miner:
             response = requests.get(url, params=payload).content
             if response is not None:
                 data = json.loads(response)
-                print(f"[MINER] JOINING TO PEER'S({peer[0]}:{peer[1]}) NETWORK ")
+                print(
+                    f"[MINER] JOINING TO PEER'S({peer[0]}:{peer[1]}) NETWORK ")
                 # print(f"[MINER] Blockchain: {data['blockchain']}")
                 # print(f"[MINER] Transactions: {data['transactions']}")
                 # print(f"[MINER] Peers: {self.update_peers(peers, data['peers'])}")
@@ -158,7 +160,14 @@ class Miner:
             peers[:] = response[2]
         else:
             print("[MINER] CREATE GENESIS BLOCK")
-            blockchain.append(create_genesis_block().exportjson())
+            genesis_block = create_genesis_block()
+            blockchain.append(genesis_block.exportjson())
+            # send it to the server so that it's stored in the database
+            genesis_block_json = genesis_block.exportjson()
+            genesis_block_json['ttl'] = 2
+            requests.post(url=node_url(self.ip, self.port) + "/block",
+                          headers={"Content-Type": "application/json"},
+                          data=json.dumps(genesis_block_json))
 
         print("[MINER] START MINING")
         while True:
