@@ -205,10 +205,8 @@ def cli():
 if __name__ == '__main__':
     # variable work determines number of leading zeroes needed to have hash(f"{last_proof}{proof}")
     work = 6  # better to put 6
-    # change to auto generation
-    miner_public_key, miner_private_key = generate_ECDSA_keys()
-
     ip, port, mongo_port, node_peers = cli()
+    miner_public_key, miner_private_key = generate_ECDSA_keys(filename=f'miner{ip}:{port}')
     with Manager() as manager:
         blockchain = manager.list([])
         transactions = manager.list([])
