@@ -1,11 +1,8 @@
 from block import Block
 import requests
 import hashlib
-# import pprint
-import time
+from datetime import datetime
 import json
-
-
 
 
 def create_genesis_block():
@@ -13,7 +10,7 @@ def create_genesis_block():
     block has no previous, so it must be created manually (with index zero
     and arbitrary previous hash)"""
     return Block(index=0,
-                 timestamp=time.time(),
+                 timestamp=str(datetime.utcnow()),
                  transactions=[],
                  proof=9,
                  previous_hash="0")
@@ -30,7 +27,6 @@ class Miner:
         self.address = [self.ip, self.port]
         self.work = work
         self.key = key
-
 
     def update_peers(self, current_peers, other_miner_peers):
         new_peers = [peer for peer in other_miner_peers if peer not in current_peers and peer != self.address]
@@ -185,7 +181,7 @@ class Miner:
                 transactions.append(self.reward_transaction())
                 # Now create the new block
                 mined_block = Block(index=last_block['index'] + 1,
-                                    timestamp=time.time(),
+                                    timestamp=str(datetime.utcnow()),
                                     transactions=list(transactions),
                                     proof=proof,
                                     previous_hash=last_block['hash'])
