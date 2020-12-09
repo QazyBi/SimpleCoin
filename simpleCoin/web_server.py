@@ -92,7 +92,6 @@ def join():
 @node.route('/block', methods=['POST'])
 def post_block():
     block = request.get_json()
-    print("EHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
     if valid_block(block):
         print("[MINER] APPENDED NEW BLOCK TO THE BLOCKCHAIN")
         blockchain.append(block)
