@@ -20,6 +20,13 @@ class BlockchainDB:
         """
         return self.collection.insert_one(block)
 
+    def update_blockchain(self, blockchain):
+        self.drop_all()
+        if not blockchain:
+            return
+        for block in blockchain:
+            self.add_block(block)
+
     def read_all_blocks(self, repr=None):
         """
         repr (json or None): how to represent the result. if None the result will be a list of Transaction class objects,
