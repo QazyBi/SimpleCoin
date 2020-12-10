@@ -167,7 +167,7 @@ class Miner:
             genesis_block_json['ttl'] = 2
             requests.post(url=node_url(self.ip, self.port) + "/block",
                           headers={"Content-Type": "application/json"},
-                          data=json.dumps(genesis_block_json))
+                          data=genesis_block_json)
 
         print("[MINER] START MINING")
         while True:
