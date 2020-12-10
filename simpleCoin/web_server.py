@@ -58,7 +58,8 @@ def update_transactions(blockchain, transactions):
 
 
 def getvalue_blockchain():
-    return blockchain._getvalue()
+    print("[MINER] BLOCKCHAIN VALUE RETRIEVED ", blockchain_db.read_all_blocks(repr='json'))
+    return blockchain_db.read_all_blocks(repr='json')
 
 
 def getvalue_transactions():
@@ -112,11 +113,15 @@ def get_peers():
     return json.dumps(getvalue_peers())
 
 
-@node.route('/blocks', methods=['GET'])
+@node.route('/blocks', methods=['POST', 'GET'])
 def get_blocks():
     """GET method returns current blockchain on the miner node
     """
-    return jsonify(blockchain_db.read_all_blocks(repr='json'))
+    if request.method == 'GET':
+        return jsonify(getvalue_blockchain())
+    else:
+        blockchain_db.update_blockchain(request.get_json())
+        return "Blockchain submission successful\n"
 
 
 @node.route('/transaction', methods=['GET', 'POST'])
@@ -204,7 +209,7 @@ def cli():
 
 if __name__ == '__main__':
     # variable work determines number of leading zeroes needed to have hash(f"{last_proof}{proof}")
-    work = 6  # better to put 6
+    work = 7  # better to put 6
     ip, port, mongo_port, node_peers = cli()
     miner_public_key, miner_private_key = generate_ECDSA_keys(filename=f'miner{ip}:{port}')
     with Manager() as manager:
