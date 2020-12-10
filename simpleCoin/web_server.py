@@ -4,7 +4,7 @@ from typing import List, Tuple
 import requests
 import sys
 import json
-from datetime import datetime
+from datetime import datetime 
 
 from common.identification import validate_signature, generate_ECDSA_keys
 from miner import Miner
@@ -109,7 +109,7 @@ def post_block():
 def get_peers():
     """GET method returns miner node's peers
     """
-    return json.dumps(getvalue_peers())
+    return jsonify(getvalue_peers())
 
 
 @node.route('/blocks', methods=['GET'])
@@ -149,7 +149,7 @@ def get_post_transaction():
         else:
             return "Transaction submission failed. Check your signature or the receiver's public key\n"
     else:
-        return json.dumps(getvalue_transactions())
+        return jsonify(getvalue_transactions())
 
 
 @node.route('/new_public_key', methods=['POST'])
