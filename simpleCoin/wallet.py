@@ -35,7 +35,7 @@ def wallet():
         print("""=========================================\n
 IMPORTANT: save this credentials or you won't be able to recover your wallet\n
 =========================================\n""")
-        public_key, _ = generate_ECDSA_keys()
+        public_key, _ = generate_ECDSA_keys(user=True)
         store_public_key(public_key)
 
     elif response == "2":
@@ -98,7 +98,7 @@ def check_transactions():
     wallets balance. If the blockchain is to long, it may take some time to load.
     """
     res = requests.get('http://localhost:5000/blocks')
-    with open('transactions.txt', 'w') as outfile:
+    with open('wallet/transactions.txt', 'w') as outfile:
         outfile.write(dumps(loads(res.text), indent=4, sort_keys=True))
         outfile.close()
 

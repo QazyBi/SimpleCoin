@@ -85,9 +85,12 @@ work = 6
 miner_key = "q3nf394hjg-random-miner-address-34nf3i4nflkn3oi"
 url = f"http://{ip}:{port}"
 
-private_key_q = "1ad357fd4a763b435c1d39e92a8291d63fccaba230f53395c50319cd169d9756"
-public_key_q = "jT2f/n72iK6tmub3h83cj1PlFBjHi4myprm/KSurObmCjNUIwZxrvKMk/6ELK/8TjdRDiYQHMMbOsPLmFgHQpg=="
-public_key_w = "6zely0H5C7Gg1vV8uUGnXlv4XcKHn59aatj4LT0j0sbYW6MWw52GyMgFAvr2Xpj2qLo0p5T2CtkeuEm+zqY8TQ=="
+# PUT EXISTING KEYS!
+private_key_q = ""
+public_key_q = ""
+
+public_key_a = ""
+private_key_a = ""
 
 test_validate_blockchain_valid_chain()
 test_validate_blockchain_invalid_chain()
@@ -95,6 +98,6 @@ test_validate_blockchain_invalid_chain()
 # test_find_new_chains()
 
 # test_get_blocks()
-test_get_join()
+# test_get_join()
 # test_post_transactions(public_key_q, public_key_w, private_key_q, 123456)
 # test_get_transactions()

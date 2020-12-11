@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from block import Block
 
-
+GENESIS = 0
 class BlockchainDB:
     def __init__(self, IP, PORT):
         """
@@ -14,10 +14,15 @@ class BlockchainDB:
         # drop the previously stored blockchain
         self.drop_all()
 
-    def add_block(self, block: Block):
+    def add_block(self, block):
         """
         block (Block): a block to add to the collection
         """
+        global GENESIS
+        if block['index'] == 0 and GENESIS > 0:
+            return
+        elif block['index'] == 0:
+            GENESIS += 1
         return self.collection.insert_one(block)
 
     def update_blockchain(self, blockchain):
