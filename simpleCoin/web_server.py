@@ -58,7 +58,7 @@ def update_transactions(blockchain, transactions):
 
 
 def getvalue_blockchain():
-    return blockchain._getvalue()
+    return blockchain_db.read_all_blocks(repr='json')
 
 
 def getvalue_transactions():
@@ -112,11 +112,16 @@ def get_peers():
     return jsonify(getvalue_peers())
 
 
-@node.route('/blocks', methods=['GET'])
+@node.route('/blocks', methods=['POST', 'GET'])
 def get_blocks():
     """GET method returns current blockchain on the miner node
     """
-    return jsonify(blockchain_db.read_all_blocks(repr='json'))
+    if request.method == 'GET':
+        return jsonify(getvalue_blockchain())
+    else:
+        blockchain = request.get_json()
+        blockchain_db.update_blockchain(blockchain)     
+        return "Blockchain submission successful"  
 
 
 @node.route('/transaction', methods=['GET', 'POST'])

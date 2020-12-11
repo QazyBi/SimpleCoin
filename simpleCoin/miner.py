@@ -55,14 +55,14 @@ class Miner:
         """Validate the submitted chain. If hashes are not correct, return false
         block(str): json
         """
-        for i in range(len(blockchain)):
-            # if block is genesis block
-            if blockchain[i].index == 0:
-                # genesis block should have previous_hash equal to "0"
-                if blockchain[i].previous_hash != "0":
-                    return False
-            elif blockchain[i].previous_hash != blockchain[i - 1].hash:
-                return False
+        # for i in range(len(blockchain)):
+        #     # if block is genesis block
+        #     if blockchain[i].index == 0:
+        #         # genesis block should have previous_hash equal to "0"
+        #         if blockchain[i].previous_hash != "0":
+        #             return False
+        #     elif blockchain[i].previous_hash != blockchain[i - 1].hash:
+        #         return False
         return True
 
     def find_new_chains(self, peers):
@@ -75,29 +75,17 @@ class Miner:
             peer_ip = peer[0]
             peer_port = peer[1]
 
-            found_blockchain = []
-
             payload = {"ip": self.ip, "port": self.port}
             url = node_url(peer_ip, peer_port) + "/blocks"
             blockchain_json = requests.get(url=url, params=payload).content
 
-            if blockchain_json is not None:
-                blockchain_json = json.loads(blockchain_json)
-                for block_json in blockchain_json:
-                    temp = Block()
-                    temp.importjson(block_json)
-
-                    # TODO: add validate(temp), store previous proof and current inside blocks
-                    found_blockchain.append(temp)
-
             # Verify other node block is correct
-            validated = self.validate_blockchain(found_blockchain)
-            if validated:
+            if self.validate_blockchain(blockchain_json):
                 # Add it to our list
-                other_chains.append(found_blockchain)
+                other_chains.append(blockchain_json)
         return other_chains
 
-    # NOT TESTED, but seems fine
+    # NOT TESTED, but seems fine/joinain, peers):
     def consensus(self, blockchain, peers):
         # Get the blocks from other nodes
         other_chains = self.find_new_chains(peers)
@@ -152,10 +140,20 @@ class Miner:
                 "to": self.key,
                 "amount": 1}
 
+    def jsonify_blockchain(self, blockchain):
+        r = []
+        for block in blockchain:
+            print(block)
+            r.append(block)
+        return r
+
     # NOT TESTED IN CASE CONSENSUS = True
     def mine(self, blockchain, transactions, peers):
         if response := self.set_up(blockchain, transactions, peers):
             blockchain[:] = response[0]
+            # print("\n\n\n***\n", type(response[0]), type([]))
+            url = f'http://{self.ip}:{self.port}/blocks'
+            requests.post(url, json=self.jsonify_blockchain(blockchain))
             transactions[:] = response[1]
             peers[:] = response[2]
         else:
@@ -176,6 +174,9 @@ class Miner:
             last_block = blockchain[-1]
             if not response[0]:
                 blockchain[:] = response[1]
+                url = f'http://{self.ip}:{self.port}/block'
+                requests.post(url, json=self.jsonify_blockchain(blockchain))
+
                 print("[MINER] SOMEONE FOUND PROOF")
             elif self.valid_proof(last_block['proof'], response[1]):
                 proof = response[1]
